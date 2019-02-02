@@ -31,7 +31,7 @@ input.on('message', function(deltaTime, message) {
     48: {color:'blue'  , sample: 'blue.wav'  },
     45: {color:'green' , sample: 'green.wav' },
     46: {color:'yellow', sample: 'yellow.wav'},
-    49: {color:'oranje', sample: 'oranje.wav'},
+    49: {color:'orange', sample: 'orange.wav'},
   }
 
   const [status, drumNumber, force] = message;
