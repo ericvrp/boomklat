@@ -25,20 +25,22 @@ input.on('message', function(deltaTime, message) {
   // https://www.cs.cf.ac.uk/Dave/Multimedia/node158.html has some helpful
   // information interpreting the messages.
   const drumInfo = {
-    36: {color:'foot'  , volumeMultiplier:20.0, sample:'foot.wav'  },
-    38: {color:'red'   , volumeMultiplier: 9.0, sample:'red.wav'   },
-    48: {color:'blue'  , volumeMultiplier: 5.0, sample:'blue.wav'  },
-    45: {color:'green' , volumeMultiplier:15.0, sample:'green.wav' },
-    46: {color:'yellow', volumeMultiplier:10.0, sample:'yellow.wav'},
-    49: {color:'orange', volumeMultiplier:10.0, sample:'orange.wav'},
+    36: {color:'foot'  , volumeOffset:-25, volumeMultiplier:5.0, sample:'foot.wav'  },
+    38: {color:'red'   , volumeOffset:-25, volumeMultiplier:5.0, sample:'red.wav'   },
+    48: {color:'blue'  , volumeOffset:-25, volumeMultiplier:5.0, sample:'blue.wav'  },
+    45: {color:'green' , volumeOffset:-25, volumeMultiplier:5.0, sample:'green.wav' },
+    46: {color:'yellow', volumeOffset:-25, volumeMultiplier:5.0, sample:'yellow.wav'},
+    49: {color:'orange', volumeOffset:-25, volumeMultiplier:5.0, sample:'orange.wav'},
   }
 
   const [status, drumNumber, force] = message;
   const drum = drumInfo[drumNumber]
   if (status == 153 && drum) {
-    const volume = force * drum.volumeMultiplier / 256.0;
-    console.log(drum.color, volume, drum.sample);
-    const cmd = `play -v ${volume} samples/${drum.sample}`
+    let volume = (force + drum.volumeOffset) * drum.volumeMultiplier / 256.0;
+    volume = Math.max(volume, 0.1)
+    volume = Math.min(volume, 5.0)
+    console.log(drum.color, volume.toFixed(1), drum.sample);
+    const cmd = `play -v ${volume.toFixed(1)} samples/${drum.sample}`
     // console.log(cmd);
     exec(cmd);
   } else {
