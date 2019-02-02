@@ -1,0 +1,15 @@
+{
+  "name": "boomklat",
+  "version": "0.0.1",
+  "description": "Boom Klat converts a Wii drums machine to an actual drum.",
+  "repository": "https://github.com/ericvrp/boomklat.git",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Eric van Riet Paap",
+  "license": "MIT",
+  "dependencies": {
+    "midi": "^0.9.5"
+  }
+}
