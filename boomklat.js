@@ -1,24 +1,22 @@
 #!/usr/bin/env node
 
-var exec = require('child_process').exec
-var midi = require('midi')
+const exec = require('child_process').exec
+const midi = require('midi')
 
 // Set up a new input.
-var input = new midi.input();
-// console.log('input:', input);
+const input = new midi.input();
 
-// Count the available input ports.
-var nPorts = input.getPortCount();
+const nPorts = input.getPortCount();
 // console.log('nPorts:', nPorts);
+for (var portNumber = 0;portNumber < nPorts;portNumber++) {
+  if (input.getPortName(portNumber).includes('UM-ONE'))
+    break
+}
 
-var portNumber = nPorts - 1;
 // console.log('portNumber:', portNumber);
 
-// TODO: search for correct port (UM_ONE in the name)
-
-// Get the name of a specified input port.
-var portName = input.getPortName(portNumber);
-console.log('portName:', portName);
+// const portName = input.getPortName(portNumber);
+// console.log('portName:', portName);
 
 // Configure a callback.
 input.on('message', function(deltaTime, message) {
@@ -27,18 +25,21 @@ input.on('message', function(deltaTime, message) {
   // https://www.cs.cf.ac.uk/Dave/Multimedia/node158.html has some helpful
   // information interpreting the messages.
   const drumInfo = {
-    38: {color:'red'   , sample: 'red.wav'   },
-    48: {color:'blue'  , sample: 'blue.wav'  },
-    45: {color:'green' , sample: 'green.wav' },
-    46: {color:'yellow', sample: 'yellow.wav'},
-    49: {color:'orange', sample: 'orange.wav'},
+    38: {color:'red'   , volumeMultiplier: 9.0, sample:'red.wav'   },
+    48: {color:'blue'  , volumeMultiplier: 5.0, sample:'blue.wav'  },
+    45: {color:'green' , volumeMultiplier:15.0, sample:'green.wav' },
+    46: {color:'yellow', volumeMultiplier:10.0, sample:'yellow.wav'},
+    49: {color:'orange', volumeMultiplier:10.0, sample:'orange.wav'},
   }
 
   const [status, drumNumber, force] = message;
   const drum = drumInfo[drumNumber]
   if (status == 153 && drum) {
-    console.log(drum.color, force, drum.sample);
-    exec('aplay samples/' + drum.sample);
+    const volume = force * drum.volumeMultiplier / 256.0;
+    console.log(drum.color, volume, drum.sample);
+    const cmd = `play -v ${volume} samples/${drum.sample}`
+    // console.log(cmd);
+    exec(cmd);
   } else {
      console.log('message:', message, ', deltaTime:', deltaTime);
   }

@@ -4,5 +4,5 @@ Boom Klat converts a Wii drums machine to an actual drum
 
 Installation on Raspberry Pi:
 ---
-sudo apt install libudev-dev libasound2-dev
+sudo apt install libudev-dev libasound2-dev sox
 npm install
