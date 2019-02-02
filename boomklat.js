@@ -25,6 +25,7 @@ input.on('message', function(deltaTime, message) {
   // https://www.cs.cf.ac.uk/Dave/Multimedia/node158.html has some helpful
   // information interpreting the messages.
   const drumInfo = {
+    36: {color:'foot'  , volumeMultiplier:20.0, sample:'foot.wav'  },
     38: {color:'red'   , volumeMultiplier: 9.0, sample:'red.wav'   },
     48: {color:'blue'  , volumeMultiplier: 5.0, sample:'blue.wav'  },
     45: {color:'green' , volumeMultiplier:15.0, sample:'green.wav' },
