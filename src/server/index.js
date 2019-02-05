@@ -1,11 +1,16 @@
 #!/usr/bin/env node
 
-const exec = require('child_process').exec
-const midi = require('midi')
+const exec    = require('child_process').exec
+const midi    = require('midi')
 const express = require('express')
+const app     = express()
+const server  = require('http').Server(app)
+const io      = require('socket.io')(server)
 
 
 // settings
+const HTTP_PORT   = process.env.HTTP_PORT || 3001
+
 const PORT_NAME   = 'UM-ONE'
 
 const NOTE_ON     = 153
@@ -19,8 +24,6 @@ const DRUM_GREEN  = 45
 const DRUM_YELLOW = 46
 const DRUM_ORANGE = 49
 
-const HTTP_PORT = 6001
-
 
 //
 const playNote = (message) => {
@@ -29,8 +32,8 @@ const playNote = (message) => {
     return
   }
 
-  // console.log(io)
-  io.emit('playNote', message)
+  // console.log('playNote', {message})
+  io.sockets.emit('playNote', {message})
 
   // The message is an array of numbers corresponding to the MIDI bytes:
   //   [status, data1, data2]
@@ -172,14 +175,14 @@ const handleUsb = () => {
 
 //
 const startServer = () => {
-  const app = express()
+  server.listen(HTTP_PORT, () => console.log(`Server on http://localhost:${HTTP_PORT}`))
 
   app.get('/', (req, res) => {res.send('Hello World!') })
   app.use(express.static('public'))
 
-  app.listen(HTTP_PORT, () => console.log(`Server on http://localhost:${HTTP_PORT}`))
+  // io = require('socket.io')(HTTP_PORT+1)
+  // console.log(`Socket.io on http://localhost:${HTTP_PORT+1}`)
 
-  io = require('socket.io')(HTTP_PORT+1)
   io.on('connection', (socket) => {
     console.log('New connection to', socket.id)
   })
