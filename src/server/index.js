@@ -11,6 +11,8 @@ const io      = require('socket.io')(server)
 // settings
 const HTTP_PORT   = process.env.HTTP_PORT || 3001
 
+const PLAY_ON_SERVER = false
+
 const PORT_NAME   = 'UM-ONE'
 
 const NOTE_ON     = 153
@@ -31,9 +33,6 @@ const playNote = (message) => {
     // console.info('warning: no message')
     return
   }
-
-  // console.log('playNote', {message})
-  io.sockets.emit('playNote', {message})
 
   // The message is an array of numbers corresponding to the MIDI bytes:
   //   [status, data1, data2]
@@ -56,9 +55,13 @@ const playNote = (message) => {
     volume = Math.max(volume, 0.1)
     volume = Math.min(volume, 5.0)
     console.log(drum.color, volume.toFixed(1), drum.sample)
-    const cmd = `play -v ${volume.toFixed(1)} public/${drum.sample}`
-    // console.log(cmd)
-    exec(cmd)
+    io.sockets.emit('playNote', {volume:volume.toFixed(1), 'sample':drum.sample})
+
+    if (PLAY_ON_SERVER) {
+      const cmd = `play -v ${volume.toFixed(1)} public/${drum.sample}`
+      // console.log(cmd)
+      exec(cmd)
+    }
   } else {
     console.info('warning: unknown message', message)
   }
@@ -177,8 +180,8 @@ const handleUsb = () => {
 const startServer = () => {
   server.listen(HTTP_PORT, () => console.log(`Server on http://localhost:${HTTP_PORT}`))
 
-  app.get('/', (req, res) => {res.send('Hello World!') })
-  app.use(express.static('public'))
+  // app.get('/', (req, res) => {res.send('Hello World!') })
+  // app.use(express.static('public'))
 
   // io = require('socket.io')(HTTP_PORT+1)
   // console.log(`Socket.io on http://localhost:${HTTP_PORT+1}`)
