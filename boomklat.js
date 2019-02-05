@@ -2,6 +2,7 @@
 
 const exec = require('child_process').exec
 const midi = require('midi')
+const express = require('express')
 
 
 // settings
@@ -18,6 +19,8 @@ const DRUM_GREEN  = 45
 const DRUM_YELLOW = 46
 const DRUM_ORANGE = 49
 
+const HTTP_PORT = 6001
+
 
 //
 const playNote = (message) => {
@@ -25,6 +28,9 @@ const playNote = (message) => {
     // console.info('warning: no message')
     return
   }
+
+  // console.log(io)
+  io.emit('playNote', message)
 
   // The message is an array of numbers corresponding to the MIDI bytes:
   //   [status, data1, data2]
@@ -47,7 +53,7 @@ const playNote = (message) => {
     volume = Math.max(volume, 0.1)
     volume = Math.min(volume, 5.0)
     console.log(drum.color, volume.toFixed(1), drum.sample)
-    const cmd = `play -v ${volume.toFixed(1)} samples/${drum.sample}`
+    const cmd = `play -v ${volume.toFixed(1)} public/${drum.sample}`
     // console.log(cmd)
     exec(cmd)
   } else {
@@ -79,7 +85,7 @@ const handleKeyboard = () => {
     // write the key to stdout all normal like
     // process.stdout.write( key )
     const key2Message = {
-      ' ': [NOTE_ON, DRUM_FOOT  , VOLUME_THRESHOLD *  3],
+      ' ': [NOTE_ON, DRUM_FOOT  , VOLUME_THRESHOLD *  2],
 
       'z': [NOTE_ON, DRUM_FOOT  , VOLUME_THRESHOLD *  1],
       'x': [NOTE_ON, DRUM_RED   , VOLUME_THRESHOLD *  1],
@@ -88,26 +94,26 @@ const handleKeyboard = () => {
       'b': [NOTE_ON, DRUM_YELLOW, VOLUME_THRESHOLD *  1],
       'n': [NOTE_ON, DRUM_ORANGE, VOLUME_THRESHOLD *  1],
 
-      'a': [NOTE_ON, DRUM_FOOT  , VOLUME_THRESHOLD *  3],
-      's': [NOTE_ON, DRUM_RED   , VOLUME_THRESHOLD *  3],
-      'd': [NOTE_ON, DRUM_BLUE  , VOLUME_THRESHOLD *  3],
-      'f': [NOTE_ON, DRUM_GREEN , VOLUME_THRESHOLD *  3],
-      'g': [NOTE_ON, DRUM_YELLOW, VOLUME_THRESHOLD *  3],
-      'h': [NOTE_ON, DRUM_ORANGE, VOLUME_THRESHOLD *  3],
+      'a': [NOTE_ON, DRUM_FOOT  , VOLUME_THRESHOLD *  2],
+      's': [NOTE_ON, DRUM_RED   , VOLUME_THRESHOLD *  2],
+      'd': [NOTE_ON, DRUM_BLUE  , VOLUME_THRESHOLD *  2],
+      'f': [NOTE_ON, DRUM_GREEN , VOLUME_THRESHOLD *  2],
+      'g': [NOTE_ON, DRUM_YELLOW, VOLUME_THRESHOLD *  2],
+      'h': [NOTE_ON, DRUM_ORANGE, VOLUME_THRESHOLD *  2],
 
-      'q': [NOTE_ON, DRUM_FOOT  , VOLUME_THRESHOLD *  6],
-      'w': [NOTE_ON, DRUM_RED   , VOLUME_THRESHOLD *  6],
-      'e': [NOTE_ON, DRUM_BLUE  , VOLUME_THRESHOLD *  6],
-      'r': [NOTE_ON, DRUM_GREEN , VOLUME_THRESHOLD *  6],
-      't': [NOTE_ON, DRUM_YELLOW, VOLUME_THRESHOLD *  6],
-      'y': [NOTE_ON, DRUM_ORANGE, VOLUME_THRESHOLD *  6],
+      'q': [NOTE_ON, DRUM_FOOT  , VOLUME_THRESHOLD *  4],
+      'w': [NOTE_ON, DRUM_RED   , VOLUME_THRESHOLD *  4],
+      'e': [NOTE_ON, DRUM_BLUE  , VOLUME_THRESHOLD *  4],
+      'r': [NOTE_ON, DRUM_GREEN , VOLUME_THRESHOLD *  4],
+      't': [NOTE_ON, DRUM_YELLOW, VOLUME_THRESHOLD *  4],
+      'y': [NOTE_ON, DRUM_ORANGE, VOLUME_THRESHOLD *  4],
 
-      '1': [NOTE_ON, DRUM_FOOT  , VOLUME_THRESHOLD *  9],
-      '2': [NOTE_ON, DRUM_RED   , VOLUME_THRESHOLD *  9],
-      '3': [NOTE_ON, DRUM_BLUE  , VOLUME_THRESHOLD *  9],
-      '4': [NOTE_ON, DRUM_GREEN , VOLUME_THRESHOLD *  9],
-      '5': [NOTE_ON, DRUM_YELLOW, VOLUME_THRESHOLD *  9],
-      '6': [NOTE_ON, DRUM_ORANGE, VOLUME_THRESHOLD *  9],
+      '1': [NOTE_ON, DRUM_FOOT  , VOLUME_THRESHOLD *  6],
+      '2': [NOTE_ON, DRUM_RED   , VOLUME_THRESHOLD *  6],
+      '3': [NOTE_ON, DRUM_BLUE  , VOLUME_THRESHOLD *  6],
+      '4': [NOTE_ON, DRUM_GREEN , VOLUME_THRESHOLD *  6],
+      '5': [NOTE_ON, DRUM_YELLOW, VOLUME_THRESHOLD *  6],
+      '6': [NOTE_ON, DRUM_ORANGE, VOLUME_THRESHOLD *  6],
     }
 
     // console.log( key2Message[key] )
@@ -165,8 +171,25 @@ const handleUsb = () => {
 
 
 //
+const startServer = () => {
+  const app = express()
+
+  app.get('/', (req, res) => {res.send('Hello World!') })
+  app.use(express.static('public'))
+
+  app.listen(HTTP_PORT, () => console.log(`Server on http://localhost:${HTTP_PORT}`))
+
+  io = require('socket.io')(HTTP_PORT+1)
+  io.on('connection', (socket) => {
+    console.log('New connection to', socket.id)
+  })
+} // end of startServer()
+
+
+//
 handleUsb()
 handleKeyboard()
+startServer()
 
 
 // the end

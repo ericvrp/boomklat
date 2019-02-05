@@ -10,6 +10,8 @@
   "author": "Eric van Riet Paap",
   "license": "MIT",
   "dependencies": {
-    "midi": "^0.9.5"
+    "express": "^4.16.4",
+    "midi": "^0.9.5",
+    "socket.io": "^2.2.0"
   }
 }
