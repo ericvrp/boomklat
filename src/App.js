@@ -3,6 +3,18 @@ import React, { Component } from 'react';
 import './App.css';
 import io from 'socket.io-client';
 import {Howl /*, Howler*/} from 'howler';
+// Howler.volume(1.0);
+
+
+// preload audio samples
+// const samples = {
+//   'foot.wav': new Howl({src:['foot.wav']}),
+//   'green.wav': new Howl({src:['green.wav']}),
+//   'red.wav': new Howl({src:['red.wav']}),
+//   'blue.wav': new Howl({src:['blue.wav']}),
+//   'yellow.wav': new Howl({src:['yellow.wav']}),
+//   'orange.wav': new Howl({src:['orange.wav']}),
+// }
 
 
 //
@@ -15,6 +27,7 @@ socket.on('connect', () => {
   socket.on('playNote', (message) => {
     // console.log(message)
     const {volume, sample} = message
+    // samples[sample].play() // use reloaded (what to do with volume?)
     new Howl({src:[sample], volume, autoplay:true})
   })
 })
