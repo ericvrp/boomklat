@@ -12,15 +12,34 @@ const rpio    = require('rpio')
 // settings
 const HTTP_PORT        = process.env.HTTP_PORT || 3001
 const PLAY_ON_SERVER   = false
-const MIDI_NOTE_ON          = 153 // 0x99
+const MIDI_NOTE_ON     = 153 // 0x99
 const VOLUME_THRESHOLD = 25
 
+// midi constants
 const DRUM_FOOT   = 36
 const DRUM_RED    = 38
 const DRUM_BLUE   = 48
 const DRUM_GREEN  = 45
 const DRUM_YELLOW = 46
 const DRUM_ORANGE = 49
+const DRUM_LOOPER = DRUM_FOOT
+
+//
+const LooperStatus = {
+  IDLE: 'IDLE',
+  RECORDING: 'RECORDING',
+  PLAYBACK: 'PLAYBACK',
+}
+
+
+//
+const playbackNote = () => {
+  if (this.looperStatus !== LooperStatus.PLAYBACK) return
+  // console.log(this.looperPlaybackIndex, this.looperRecording[this.looperPlaybackIndex])
+  playNote(this.looperRecording[this.looperPlaybackIndex].message)
+  this.looperPlaybackIndex = (this.looperPlaybackIndex + 1) % this.looperRecording.length
+  setTimeout(playbackNote, this.looperRecording[this.looperPlaybackIndex].noteTimeOffset)
+}
 
 
 //
@@ -43,6 +62,32 @@ const playNote = (message) => {
   drumInfo[DRUM_ORANGE] = {color:'orange', volumeOffset:-VOLUME_THRESHOLD, volumeMultiplier:5.0, sample:'orange.wav'}
 
   const [status, drumNumber, force] = message
+
+  if (drumNumber === DRUM_LOOPER) { // 1x to start, 2x to stop
+    const now = new Date().getTime()
+
+    if (!this.looperStatus || this.looperStatus === LooperStatus.IDLE) {
+      this.looperRecording = []
+      this.looperPreviousNote = new Date().getTime()
+      this.looperStatus = LooperStatus.RECORDING
+    } else if (this.looperStatus === LooperStatus.RECORDING) {
+      this.looperRecording.push({noteTimeOffset: now - this.looperPreviousNote, message: undefined}) // mark end of loop
+      // console.log(this.looperRecording)
+      this.looperPlaybackIndex = 0
+      this.looperStatus = LooperStatus.PLAYBACK
+      // console.log(this.looperPlaybackIndex, this.looperRecording[this.looperPlaybackIndex])
+      // console.log(playbackNote)
+      if (this.looperRecording.length > 1) { // contains more then just the end of loop marker
+        setTimeout(playbackNote, this.looperRecording[this.looperPlaybackIndex].noteTimeOffset)
+      }
+    } else {
+      this.looperStatus = LooperStatus.IDLE
+    }
+
+    console.log('DRUM_LOOPER', this.looperStatus)
+    return
+  }
+
   const drum = drumInfo[drumNumber]
   // console.log(drum, drumNumber, drumInfo)
 
@@ -51,7 +96,15 @@ const playNote = (message) => {
     volume = Math.max(volume, 0.1)
     volume = Math.min(volume, 5.0)
     console.log(drum.color, volume.toFixed(1), drum.sample)
-    io.sockets.emit('playNote', {volume:volume.toFixed(1), 'sample':drum.sample})
+    const emitMessage = {volume:volume.toFixed(1), 'sample':drum.sample}
+    io.sockets.emit('playNote', emitMessage)
+
+    if (this.looperStatus === LooperStatus.RECORDING) {
+      const now = new Date().getTime()
+      this.looperRecording.push({noteTimeOffset: now - this.looperPreviousNote, message})
+      // console.log(this.looperRecording)
+      this.looperPreviousNote = now
+    }
 
     if (PLAY_ON_SERVER) {
       const cmd = `play -v ${volume.toFixed(1)} public/${drum.sample}`
@@ -67,20 +120,22 @@ const playNote = (message) => {
 //
 const handleKeyboard = () => {
   const stdin = process.stdin
+  if (!stdin.setRawMode) {
+    console.warn("Warning: not forwarding keyboard events (no tty / don't use nodemon)")
+    return
+  }
+
   stdin.setRawMode(true)    // without this, we would only get streams once enter is pressed
   stdin.resume()            // resume stdin in the parent process (node app won't quit all by itself unless an error or process.exit() happens)
   stdin.setEncoding('utf8') // not binary
 
   console.log('Keyboard forwarding enabled')
 
-  // on any data into stdin
-  stdin.on( 'data', function( key ){
-    // ctrl-c ( end of text )
-    if ( key === '\u0003' ) {
+  stdin.on('data', key => {
+    if (key === '\u0003') { // ctrl-c ( end of text )
       process.exit()
     }
-    // write the key to stdout all normal like
-    // process.stdout.write( key )
+
     const key2Message = {
       ' ': [MIDI_NOTE_ON, DRUM_FOOT  , VOLUME_THRESHOLD *  2],
 
@@ -137,7 +192,7 @@ const handleUsb = () => {
 
   console.log('Midi (through usb) forwarding enabled')
 
-  input.on('message', function(deltaTime, message) {
+  input.on('message', (deltaTime, message) => {
     playNote(message)
   })
 
