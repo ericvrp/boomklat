@@ -6,17 +6,13 @@ const express = require('express')
 const app     = express()
 const server  = require('http').Server(app)
 const io      = require('socket.io')(server)
+const rpio    = require('rpio')
 
 
 // settings
-const HTTP_PORT   = process.env.HTTP_PORT || 3001
-
-const PLAY_ON_SERVER = false
-
-const PORT_NAME   = 'UM-ONE'
-
-const NOTE_ON     = 153
-
+const HTTP_PORT        = process.env.HTTP_PORT || 3001
+const PLAY_ON_SERVER   = false
+const MIDI_NOTE_ON          = 153 // 0x99
 const VOLUME_THRESHOLD = 25
 
 const DRUM_FOOT   = 36
@@ -30,7 +26,7 @@ const DRUM_ORANGE = 49
 //
 const playNote = (message) => {
   if (!message) {
-    // console.info('warning: no message')
+    // console.warn('Warning: no message')
     return
   }
 
@@ -50,7 +46,7 @@ const playNote = (message) => {
   const drum = drumInfo[drumNumber]
   // console.log(drum, drumNumber, drumInfo)
 
-  if (status === NOTE_ON && drum) {
+  if (status === MIDI_NOTE_ON && drum) {
     let volume = (force + drum.volumeOffset) * drum.volumeMultiplier / 256.0
     volume = Math.max(volume, 0.1)
     volume = Math.min(volume, 5.0)
@@ -63,24 +59,19 @@ const playNote = (message) => {
       exec(cmd)
     }
   } else {
-    console.info('warning: unknown message', message)
+    console.warn('Warning: unknown message', message)
   }
 } // end of playNote()
 
 
 //
 const handleKeyboard = () => {
-  var stdin = process.stdin
+  const stdin = process.stdin
+  stdin.setRawMode(true)    // without this, we would only get streams once enter is pressed
+  stdin.resume()            // resume stdin in the parent process (node app won't quit all by itself unless an error or process.exit() happens)
+  stdin.setEncoding('utf8') // not binary
 
-  // without this, we would only get streams once enter is pressed
-  stdin.setRawMode( true )
-
-  // resume stdin in the parent process (node app won't quit all by itself
-  // unless an error or process.exit() happens)
-  stdin.resume()
-
-  // i don't want binary, do you?
-  stdin.setEncoding( 'utf8' )
+  console.log('Keyboard forwarding enabled')
 
   // on any data into stdin
   stdin.on( 'data', function( key ){
@@ -91,35 +82,35 @@ const handleKeyboard = () => {
     // write the key to stdout all normal like
     // process.stdout.write( key )
     const key2Message = {
-      ' ': [NOTE_ON, DRUM_FOOT  , VOLUME_THRESHOLD *  2],
+      ' ': [MIDI_NOTE_ON, DRUM_FOOT  , VOLUME_THRESHOLD *  2],
 
-      'z': [NOTE_ON, DRUM_FOOT  , VOLUME_THRESHOLD *  1],
-      'x': [NOTE_ON, DRUM_RED   , VOLUME_THRESHOLD *  1],
-      'c': [NOTE_ON, DRUM_BLUE  , VOLUME_THRESHOLD *  1],
-      'v': [NOTE_ON, DRUM_GREEN , VOLUME_THRESHOLD *  1],
-      'b': [NOTE_ON, DRUM_YELLOW, VOLUME_THRESHOLD *  1],
-      'n': [NOTE_ON, DRUM_ORANGE, VOLUME_THRESHOLD *  1],
+      'z': [MIDI_NOTE_ON, DRUM_FOOT  , VOLUME_THRESHOLD *  1],
+      'x': [MIDI_NOTE_ON, DRUM_RED   , VOLUME_THRESHOLD *  1],
+      'c': [MIDI_NOTE_ON, DRUM_BLUE  , VOLUME_THRESHOLD *  1],
+      'v': [MIDI_NOTE_ON, DRUM_GREEN , VOLUME_THRESHOLD *  1],
+      'b': [MIDI_NOTE_ON, DRUM_YELLOW, VOLUME_THRESHOLD *  1],
+      'n': [MIDI_NOTE_ON, DRUM_ORANGE, VOLUME_THRESHOLD *  1],
 
-      'a': [NOTE_ON, DRUM_FOOT  , VOLUME_THRESHOLD *  2],
-      's': [NOTE_ON, DRUM_RED   , VOLUME_THRESHOLD *  2],
-      'd': [NOTE_ON, DRUM_BLUE  , VOLUME_THRESHOLD *  2],
-      'f': [NOTE_ON, DRUM_GREEN , VOLUME_THRESHOLD *  2],
-      'g': [NOTE_ON, DRUM_YELLOW, VOLUME_THRESHOLD *  2],
-      'h': [NOTE_ON, DRUM_ORANGE, VOLUME_THRESHOLD *  2],
+      'a': [MIDI_NOTE_ON, DRUM_FOOT  , VOLUME_THRESHOLD *  2],
+      's': [MIDI_NOTE_ON, DRUM_RED   , VOLUME_THRESHOLD *  2],
+      'd': [MIDI_NOTE_ON, DRUM_BLUE  , VOLUME_THRESHOLD *  2],
+      'f': [MIDI_NOTE_ON, DRUM_GREEN , VOLUME_THRESHOLD *  2],
+      'g': [MIDI_NOTE_ON, DRUM_YELLOW, VOLUME_THRESHOLD *  2],
+      'h': [MIDI_NOTE_ON, DRUM_ORANGE, VOLUME_THRESHOLD *  2],
 
-      'q': [NOTE_ON, DRUM_FOOT  , VOLUME_THRESHOLD *  4],
-      'w': [NOTE_ON, DRUM_RED   , VOLUME_THRESHOLD *  4],
-      'e': [NOTE_ON, DRUM_BLUE  , VOLUME_THRESHOLD *  4],
-      'r': [NOTE_ON, DRUM_GREEN , VOLUME_THRESHOLD *  4],
-      't': [NOTE_ON, DRUM_YELLOW, VOLUME_THRESHOLD *  4],
-      'y': [NOTE_ON, DRUM_ORANGE, VOLUME_THRESHOLD *  4],
+      'q': [MIDI_NOTE_ON, DRUM_FOOT  , VOLUME_THRESHOLD *  4],
+      'w': [MIDI_NOTE_ON, DRUM_RED   , VOLUME_THRESHOLD *  4],
+      'e': [MIDI_NOTE_ON, DRUM_BLUE  , VOLUME_THRESHOLD *  4],
+      'r': [MIDI_NOTE_ON, DRUM_GREEN , VOLUME_THRESHOLD *  4],
+      't': [MIDI_NOTE_ON, DRUM_YELLOW, VOLUME_THRESHOLD *  4],
+      'y': [MIDI_NOTE_ON, DRUM_ORANGE, VOLUME_THRESHOLD *  4],
 
-      '1': [NOTE_ON, DRUM_FOOT  , VOLUME_THRESHOLD *  6],
-      '2': [NOTE_ON, DRUM_RED   , VOLUME_THRESHOLD *  6],
-      '3': [NOTE_ON, DRUM_BLUE  , VOLUME_THRESHOLD *  6],
-      '4': [NOTE_ON, DRUM_GREEN , VOLUME_THRESHOLD *  6],
-      '5': [NOTE_ON, DRUM_YELLOW, VOLUME_THRESHOLD *  6],
-      '6': [NOTE_ON, DRUM_ORANGE, VOLUME_THRESHOLD *  6],
+      '1': [MIDI_NOTE_ON, DRUM_FOOT  , VOLUME_THRESHOLD *  6],
+      '2': [MIDI_NOTE_ON, DRUM_RED   , VOLUME_THRESHOLD *  6],
+      '3': [MIDI_NOTE_ON, DRUM_BLUE  , VOLUME_THRESHOLD *  6],
+      '4': [MIDI_NOTE_ON, DRUM_GREEN , VOLUME_THRESHOLD *  6],
+      '5': [MIDI_NOTE_ON, DRUM_YELLOW, VOLUME_THRESHOLD *  6],
+      '6': [MIDI_NOTE_ON, DRUM_ORANGE, VOLUME_THRESHOLD *  6],
     }
 
     // console.log( key2Message[key] )
@@ -130,33 +121,27 @@ const handleKeyboard = () => {
 
 //
 const handleUsb = () => {
-  // Set up a new input.
-  const input = new midi.input()
+  const input = new midi.input() // Set up a new input.
 
   const nPorts = input.getPortCount()
-  // console.log('nPorts:', nPorts)
   for (var portNumber = 0;portNumber < nPorts;portNumber++) {
-    if (input.getPortName(portNumber).includes(PORT_NAME))
+    const portName = input.getPortName(portNumber)
+    // console.log(portName)
+    if (!portName.includes('Midi Through'))
       break
   }
   if (portNumber >= nPorts) {
-    console.info('warning:', PORT_NAME, 'usb port not found')
+    console.warn('Warning: not forwarding midi events (midi to usb interface not found)')
     return
   }
 
-  // console.log('portNumber:', portNumber)
+  console.log('Midi (through usb) forwarding enabled')
 
-  // const portName = input.getPortName(portNumber)
-  // console.log('portName:', portName)
-
-  // Configure a callback.
   input.on('message', function(deltaTime, message) {
     playNote(message)
   })
 
-  // Open the first available input port
-  var openPort = input.openPort(portNumber)
-  // console.log('openPort:', openPort)
+  var openPort = input.openPort(portNumber) // Open the first available input port (midi->usb interface)
 
   // Sysex, timing, and active sensing messages are ignored
   // by default. To enable these message types, pass false for
@@ -166,19 +151,14 @@ const handleUsb = () => {
   // you should use
   // input.ignoreTypes(true, false, true)
   var ignoreTypes = input.ignoreTypes(false, false, false)
-  // console.log('ignoreTypes', ignoreTypes)
 
-  // ... receive MIDI messages ...
-
-  // Close the port when done.
-  // var closePort = input.closePort()
-  // console.log('closePort', closePort)
+  // var closePort = input.closePort() // Close the port when done.
 } // end of handleUsb()
 
 
 //
 const startServer = () => {
-  server.listen(HTTP_PORT, () => console.log(`Server on http://localhost:${HTTP_PORT}`))
+  server.listen(HTTP_PORT, () => console.log(`Events server running on http://localhost:${HTTP_PORT}`))
 
   // app.get('/', (req, res) => {res.send('Hello World!') })
   // app.use(express.static('public'))

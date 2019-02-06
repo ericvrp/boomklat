@@ -25,7 +25,7 @@ const socket = io()
 socket.on('connect', () => {
   console.log('Connected')
   socket.on('playNote', (message) => {
-    // console.log(message)
+    console.log(message)
     const {volume, sample} = message
     // samples[sample].play() // use reloaded (what to do with volume?)
     new Howl({src:[sample], volume, autoplay:true})
